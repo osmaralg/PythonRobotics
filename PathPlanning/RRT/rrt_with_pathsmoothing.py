@@ -12,13 +12,17 @@ u"""
 import random
 import math
 import copy
+from scipy import misc
+import glob
+import numpy as np
+import matplotlib
 
 class RRT():
     u"""
     Class for RRT Planning
     """
 
-    def __init__(self, start, goal, obstacleList,randArea,expandDis=1.0,goalSampleRate=5,maxIter=500):
+    def __init__(self, start, goal, obstacleList,randArea,expandDis=30,goalSampleRate=10,maxIter=100):
         u"""
         Setting Parameter
 
@@ -99,14 +103,16 @@ class RRT():
         for node in self.nodeList:
             if node.parent is not None:
                 plt.plot([node.x, self.nodeList[node.parent].x], [node.y, self.nodeList[node.parent].y], "-g")
+                plt.axis([0, 800, 0, 800])   ####################################### aqui
+                plt.grid(True)
         for (x,y,size) in obstacleList:
             self.PlotCircle(x,y,size)
 
         plt.plot(self.start.x, self.start.y, "xr")
         plt.plot(self.end.x, self.end.y, "xr")
-        plt.axis([-2, 15, -2, 15])
+        #plt.axis([0, 800, 0, 800])
         plt.grid(True)
-        plt.pause(0.01)
+        plt.pause(0.001)
 
     def PlotCircle(self,x,y,size):
         deg=range(0,360,5)
@@ -252,26 +258,60 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     #====Search Path with RRT====
     # Parameter
-    obstacleList = [
-        (5, 5, 1),
-        (3, 6, 2),
-        (3, 8, 2),
-        (3, 10, 2),
-        (7, 5, 2),
-        (9, 5, 2)
-    ]  # [x,y,size]
-    rrt=RRT(start=[0,0],goal=[5,10],randArea=[-2,15],obstacleList=obstacleList)
+
+    for image_path in glob.glob("/home/osmaralg/Desktop/PythonRobotics/PathPlanning/RRT/testfile.png"):
+        image = misc.imread(image_path)
+    print (image.shape)
+    print (image.dtype)
+
+
+
+    png = []
+    for image_path in glob.glob("/home/osmaralg/Desktop/PythonRobotics/PathPlanning/RRT/testfile.png"):
+        png.append(misc.imread(image_path))
+
+    im = np.asarray(png)
+
+    ocupado = []
+    print 'Importing done...', im.shape
+    
+    print im
+    size = 800 # number of the pixels of the image 
+    resolution = 12  # step size pixel, if 1 evaluates every pixel if 4  every 4 pixels obstacle sambple
+    obstaclesize = 30 # radious of the obstacle circle
+    darkness = 50   # gray scale if 127 gray equals obstacle if 0 only black equals obstacle
+    for i in range(0,size,resolution):
+        for j in range(0,size,resolution):
+            if im[0,i,j]<darkness:
+                im[0,i,j]=obstaclesize
+                istr=str(i)
+                jstr=str(j)
+            
+            
+
+                coordenada = i,j,obstaclesize
+                ocupado.append(coordenada)
+            else:
+                im[0,i,j]=0
+            #print "espacio libre ",i,j
+
+    obstacleList = ocupado
+    print "la lenght de ocupado es : "
+    print len(ocupado)
+
+    rrt=RRT(start=[550,200],goal=[300,500],randArea=[0,size],obstacleList=obstacleList)
     path=rrt.Planning(animation=True)
 
     # Draw final path
     rrt.DrawGraph()
     plt.plot([x for (x,y) in path], [y for (x,y) in path],'-r')
-
+    plt.axis([0, size, 0, size])
     #Path smoothing
-    maxIter=1000
+    maxIter=5
     smoothedPath = PathSmoothing(path, maxIter, obstacleList)
     plt.plot([x for (x,y) in smoothedPath], [y for (x,y) in smoothedPath],'-b')
-
+    plt.axis([0, size, 0, size])
     plt.grid(True)
-    plt.pause(0.01)  # Need for Mac
+    plt.axis([0, size, 0, size])
+    #plt.pause(0.001)  # Need for Mac
     plt.show()
